@@ -1,0 +1,37 @@
+# Use Alpine as the base image
+FROM alpine:latest
+
+# Update the package repositories
+RUN apk update
+
+# Install OpenJDK (Java Development Kit)
+RUN apk add --no-cache openjdk11-jdk
+
+# Download and install Tomcat 9.0.82
+RUN wget https://downloads.apache.org/tomcat/tomcat-9/v9.0.82/bin/apache-tomcat-9.0.82.tar.gz -O /tmp/tomcat.tar.gz \
+    && tar -xf /tmp/tomcat.tar.gz -C /opt \
+    && mv /opt/apache-tomcat-9.0.82 /opt/tomcat \
+    && rm /tmp/tomcat.tar.gz
+
+# Copy Tomcat admin web applications to the webapps directory
+#RUN cp -r /opt/tomcat/webapps/!(ROOT|docs|examples|host-manager|manager) /opt/tomcat/webapps/ -v
+# Copy Tomcat admin web applications to the webapps directory
+RUN for dir in /opt/tomcat/webapps/*; do \
+        if [ "$dir" != "/opt/tomcat/webapps/ROOT" ] && \
+           [ "$dir" != "/opt/tomcat/webapps/docs" ] && \
+           [ "$dir" != "/opt/tomcat/webapps/examples" ] && \
+           [ "$dir" != "/opt/tomcat/webapps/host-manager" ] && \
+           [ "$dir" != "/opt/tomcat/webapps/manager" ]; then \
+            cp -r "$dir" /opt/tomcat/webapps/; \
+        fi; \
+    done
+
+# Configure Tomcat users by editing the tomcat-users.xml file
+RUN echo '<role rolename="manager-script"/>' >> /opt/tomcat/conf/tomcat-users.xml && \
+    echo '<user username="tomcat" password="password" roles="manager-script"/>' >> /opt/tomcat/conf/tomcat-users.xml
+
+# Expose the default Tomcat port
+EXPOSE 8081
+
+# Start Tomcat
+CMD ["/opt/tomcat/bin/catalina.sh", "run"]
