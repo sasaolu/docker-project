@@ -1,0 +1,5 @@
+Dockerfile
+Jenkinsfile
+.git
+node_modules
+*.md

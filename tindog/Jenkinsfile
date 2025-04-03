@@ -9,7 +9,7 @@ pipeline {
     stages {
         stage('Clone Repository') {
             steps {
-                git branch: 'dennis', url: 'https://github.com/TechNgine/docker-project.git'
+                git url: 'https://github.com/sasaolu/docker-project.git'
             }
         }
 
@@ -18,9 +18,9 @@ pipeline {
                 script {
                     // Navigate into the tindog directory and build the Docker image
                     dir('tindog') {
-                        sh "docker build -t ${buildTag} ." // Build Docker image with build number appended to the tag
+                        sh "docker build -t ${buildTag} ."
                     }
-                    sh 'docker images'  // List all available Docker images
+                    sh 'docker images'
                 }
             }
         }
@@ -28,9 +28,11 @@ pipeline {
         stage('Run Docker Container') {
             steps {
                 script {
+                    // Ensure previous container is removed if it exists
+                    sh "docker rm -f tindog-container || true"
                     // Run the container using the image with the build number appended
                     sh "docker run -d --name tindog-container -p 80:80 ${buildTag}"
-                    sh 'docker ps -a'  // List all running and stopped containers
+                    sh 'docker ps -a'
                 }
             }
         }
@@ -39,11 +41,10 @@ pipeline {
             steps {
                 script {
                     // Remove the Docker image
-                    sh "docker rmi ${buildTag} || true"  // Remove the image used for the container
-                    sh 'docker images'  // List available images to confirm deletion
-
+                    sh "docker rmi ${buildTag} || true"
+                    sh 'docker images'
                     // Clean up Jenkins workspace
-                    deleteDir()  // Clear the Jenkins workspace
+                    deleteDir()
                 }
             }
         }
@@ -54,7 +55,11 @@ pipeline {
             echo 'Deployment and Cleanup Successful! The container is still running.'
         }
         failure {
-            echo 'Deployment Failed!'
+            script {
+                echo 'Deployment Failed!'
+                // Optional: Stop and remove the container if something fails
+                sh "docker rm -f tindog-container || true"
+            }
         }
     }
 }
